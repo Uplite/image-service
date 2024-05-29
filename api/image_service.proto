@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option go_package = "./api/pb";
+
+service ImageServiceWriter {
+  rpc Upload(stream UploadRequest) returns (UploadResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+}
+
+service ImageServiceReader {
+  rpc GetOne(GetOneRequest) returns (GetOneResponse) {}
+  rpc GetMany(GetManyRequest) returns (GetManyResponse) {}
+}
+
+enum UploadStatus {
+  UPLOAD_STATUS_UNDEFINED = 0;
+  UPLOAD_STATUS_SUCCESS = 1;
+  UPLOAD_STATUS_ERROR = 2;
+}
+
+enum ImageContentType {
+  IMAGE_CONTENT_TYPE_UNDEFINED = 0;
+  IMAGE_CONTENT_TYPE_JPEG = 1;
+  IMAGE_CONTENT_TYPE_PNG = 2;
+  IMAGE_CONTENT_TYPE_GIF = 3;
+  IMAGE_CONTENT_TYPE_WEBP = 4;
+  IMAGE_CONTENT_TYPE_SVG = 5;
+  IMAGE_CONTENT_TYPE_BMP = 6;
+}
+
+message UploadRequest {
+  string key = 1;
+  bytes data = 2;
+  ImageContentType content_type = 3;
+}
+
+message UploadResponse { UploadStatus upload_status = 1; }
+
+message DeleteRequest { string key = 1; }
+
+message DeleteResponse { bool ok = 1; }
+
+message GetOneRequest { string key = 1; }
+
+message GetOneResponse { string url = 1; }
+
+message GetManyRequest { string user_prefix = 1; }
+
+message GetManyResponse { repeated string urls = 1; }
