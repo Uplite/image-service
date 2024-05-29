@@ -1,0 +1,4 @@
+.envrc
+bin/
+test/
+api/pb
