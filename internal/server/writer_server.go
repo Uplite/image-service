@@ -6,8 +6,6 @@ import (
 	"errors"
 	"io"
 
-	"google.golang.org/grpc"
-
 	"github.com/uplite/image-service/api/pb"
 	"github.com/uplite/image-service/internal/imageutil"
 	"github.com/uplite/image-service/internal/writer"
@@ -20,10 +18,11 @@ const (
 
 type writerServer struct {
 	pb.UnimplementedImageServiceWriterServer
+
 	writer writer.WriterDeleter
 }
 
-func newWriterServer(writer writer.WriterDeleter) *writerServer {
+func NewWriterServer(writer writer.WriterDeleter) *writerServer {
 	return &writerServer{writer: writer}
 }
 
@@ -33,6 +32,14 @@ func newUploadError() *pb.UploadResponse {
 
 func newUploadSuccess() *pb.UploadResponse {
 	return &pb.UploadResponse{UploadStatus: pb.UploadStatus_UPLOAD_STATUS_SUCCESS}
+}
+
+func (s *writerServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	if err := s.writer.Delete(ctx, req.GetKey()); err != nil {
+		return nil, err
+	}
+
+	return &pb.DeleteResponse{Ok: true}, nil
 }
 
 func (s *writerServer) Upload(stream pb.ImageServiceWriter_UploadServer) error {
@@ -49,12 +56,12 @@ func (s *writerServer) Upload(stream pb.ImageServiceWriter_UploadServer) error {
 	var contentType string
 
 	for {
-		msg, err := stream.Recv()
-		if err != nil {
-			if err == io.EOF {
+		msg, recvErr := stream.Recv()
+		if recvErr != nil {
+			if recvErr == io.EOF {
 				break
 			}
-			return err
+			return recvErr
 		}
 
 		if imageKey == "" {
@@ -77,26 +84,8 @@ func (s *writerServer) Upload(stream pb.ImageServiceWriter_UploadServer) error {
 	}
 
 	if err := s.writer.Write(ctx, imageKey, contentType, &buf); err != nil {
-		if sendErr := stream.SendAndClose(newUploadError()); sendErr != nil {
-			return sendErr
-		}
-		return err
+		return stream.SendAndClose(newUploadError())
 	}
 
-	if err := stream.SendAndClose(newUploadSuccess()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *writerServer) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
-	if err := s.writer.Delete(ctx, req.GetKey()); err != nil {
-		return &pb.DeleteResponse{Ok: false}, err
-	}
-	return &pb.DeleteResponse{Ok: true}, nil
-}
-
-func (s *writerServer) registerServer(g *grpc.Server) {
-	pb.RegisterImageServiceWriterServer(g, s)
+	return stream.SendAndClose(newUploadSuccess())
 }

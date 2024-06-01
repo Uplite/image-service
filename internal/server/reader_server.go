@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 
-	"google.golang.org/grpc"
-
 	"github.com/uplite/image-service/api/pb"
 	"github.com/uplite/image-service/internal/reader"
 )
@@ -14,7 +12,7 @@ type readerServer struct {
 	reader reader.Reader
 }
 
-func newReaderServer(reader reader.Reader) *readerServer {
+func NewReaderServer(reader reader.Reader) *readerServer {
 	return &readerServer{reader: reader}
 }
 
@@ -34,8 +32,4 @@ func (s *readerServer) GetMany(ctx context.Context, req *pb.GetManyRequest) (*pb
 	}
 
 	return &pb.GetManyResponse{Urls: urls}, nil
-}
-
-func (s *readerServer) registerServer(g *grpc.Server) {
-	pb.RegisterImageServiceReaderServer(g, s)
 }
